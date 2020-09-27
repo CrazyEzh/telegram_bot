@@ -2,7 +2,7 @@ from pymongo import MongoClient
 from telebot import TeleBot
 import pymongo
 
-START, PHOTO, DESC, LOC, CONFIRM = range(5)
+START, DESC, PHOTO, LOC, CONFIRM = range(5)
 
 token = "1196220206:AAGvBHTUREy5Qpt_W9hwhO95uaSnN_oGZbA"
 
@@ -19,10 +19,18 @@ def insert_record(collection, data):
 
 def get_record(collection, element, multiple=True):
     if multiple:
+        results = collection.delete_many(element)
+        return [r for r in results]
+    else:
+        return collection.delete_one(element)
+
+
+def delete_record(collection, element, multiple=True):
+    if multiple:
         results = collection.find(element)
         return [r for r in results]
     else:
-        return collection.find_one(element)
+        return [collection.find_one(element)]
 
 
 def update_record(collection, query_elements, new_values):
@@ -35,11 +43,12 @@ def set_state(message, state):
 
 def get_state(message):
     state = get_record(state_collection, message.chat.id, multiple=False)
-    return state["state"]
+    return state[0]["state"]
 
 
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
+    set_state(message, START)
     bot.send_message(message.chat.id, "Бот позволяет добавлять интересные места\n"
                                       "/add позволяет добавить место\n"
                                       "/list выводит список 10 последних добавленных мест\n"
@@ -49,17 +58,44 @@ def send_welcome(message):
 
 @bot.message_handler(commands=['add'])
 def add_handlers(message):
+    set_state(message, DESC)
+    bot.send_message(message.chat.id, "Добавьте описание места")
+
+
+@bot.message_handler(func=lambda message: get_state(message) == DESC)
+def add_desc_handlers(message):
+    # TODO Реализовать добавление описания
+    pass
+
+
+@bot.message_handler(func=lambda message: get_state(message) == PHOTO)
+def add_photo_handlers(message):
+    # TODO Реализовать добавление фотографии
+    pass
+
+
+@bot.message_handler(func=lambda message: get_state(message) == LOC)
+def add_loc_handlers(message):
+    # TODO Реализовать добавление геопозиции
+    pass
+
+
+@bot.message_handler(func=lambda message: get_state(message) == CONFIRM)
+def add_confirm_handlers(message):
+    # TODO Реализовать подтвержение
     pass
 
 
 @bot.message_handler(commands=['list'])
 def list_handlers(message):
-    bot.reply_to(message, "Howdy, how are you doing?")
+    # TODO Реализовать вывод списка локаций
+    pass
 
 
 @bot.message_handler(commands=['reset'])
 def reset_handlers(message):
-    bot.reply_to(message, "Howdy, how are you doing?")
+    # TODO Реализовать удаление локаций пользователя
+    pass
 
 
 if __name__ == "__main__":
