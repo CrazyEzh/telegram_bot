@@ -59,10 +59,12 @@ def get_location(user_id):
 
 
 def set_state(message, state):
-    try:
+    result = get_record(state_collection, {"id": message.chat.id})
+    if len(result) > 0:
         update_record(state_collection, {"id": message.chat.id}, {"state": state})
-    except:
+    else:
         insert_record(state_collection, {"id": message.chat.id, "state": state})
+
 
 
 def get_state(message):
