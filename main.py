@@ -1,6 +1,8 @@
 from pymongo import MongoClient
 from telebot import TeleBot, types
 from collections import defaultdict
+from haversine import haversine, Unit
+import pymongo
 
 START, DESC, PHOTO, ADDLOC, CONFIRM = range(5)
 
@@ -20,6 +22,10 @@ no_button = types.InlineKeyboardButton(text="Нет", callback_data="No")
 yes_no_keyboard.add(yes_button, no_button)
 
 
+def get_distance(orig, dest):
+    return haversine(orig, dest, unit=Unit.METERS)
+
+
 def insert_record(collection, data):
     return collection.insert_one(data).inserted_id
 
@@ -27,7 +33,7 @@ def insert_record(collection, data):
 def delete_record(collection, element, multiple=True):
     if multiple:
         results = collection.delete_many(element)
-        return [r for r in results]
+        return results
     else:
         return collection.delete_one(element)
 
@@ -61,7 +67,7 @@ def set_state(message, state):
 
 def get_state(message):
     try:
-        state = get_record(state_collection, {"id": message.chat.id})
+        state = get_record(state_collection, {"id": message.chat.id}, multiple=False)
         return state[0]["state"]
     except:
         return START
@@ -131,6 +137,7 @@ def add_confirm_handlers(callback_query):
     message = callback_query.message
     text = callback_query.data
     record = get_location(message.chat.id)
+    record["id"] = message.chat.id
     if text == "Yes":
         insert_record(loc_collection, record)
         bot.send_message(message.chat.id, "Запись добавлена")
@@ -141,14 +148,67 @@ def add_confirm_handlers(callback_query):
 
 @bot.message_handler(commands=['list'])
 def list_handlers(message):
-    # TODO Реализовать вывод списка локаций
-    pass
+    bot.send_message(message.chat.id, "Сохраненные места")
+    places = get_last_places(message)
+    if len(places) > 10:
+        start_index = len(places) - 10
+        places = places[start_index:]
+    if len(places) == 0:
+        bot.send_message(message.chat.id, "У вас нет запомненных мест")
+    else:
+        send_places(message, places)
+
+
+def send_places(message, places):
+    count = 1
+    for place in places:
+        if place.get("dist", None) is not None:
+            text = "{}. {} ({}м.)".format(count, place["desc"], int(place["dist"]))
+        else:
+            text = "{}. {}".format(count, place["desc"])
+        if place["photo"] != "":
+            bot.send_photo(message.chat.id, place["photo"], caption=text)
+        else:
+            bot.send_message(message.chat.id, text)
+        if place["loc"] != "":
+            bot.send_location(message.chat.id, place["loc"]["lat"], place["loc"]["lon"])
+        count += 1
 
 
 @bot.message_handler(commands=['reset'])
 def reset_handlers(message):
-    # TODO Реализовать удаление локаций пользователя
-    pass
+    delete_record(loc_collection, {"id": message.chat.id})
+    bot.send_message(message.chat.id, "Все сохраненные места удалены")
+
+
+@bot.message_handler(func=lambda message: get_state(message) == START, content_types=["location"])
+def near_places_handler(message):
+    bot.send_message(message.chat.id, "Сохраненные места")
+    places = get_near_places(message, message.location)
+    if len(places) > 10:
+        start_index = len(places) - 10
+        places = places[start_index:]
+    if len(places) == 0:
+        bot.send_message(message.chat.id, "В радиусе 500м. нет запомненных мест")
+    else:
+        send_places(message, places)
+
+
+def get_last_places(message):
+    return get_record(loc_collection, {"id": message.chat.id})
+
+
+def get_near_places(message, location):
+    orig = (location.latitude, location.longitude)
+    result = []
+    places = get_record(loc_collection, {"id": message.chat.id, "loc": {"$ne": ""}})
+    for place in places:
+        dest = (place["loc"]["lat"], place["loc"]["lon"])
+        dist = get_distance(orig, dest)
+        if dist <= 500:
+            place["dist"] = dist
+            result.append(place)
+    return result
 
 
 if __name__ == "__main__":
