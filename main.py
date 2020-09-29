@@ -2,17 +2,16 @@ from pymongo import MongoClient
 from telebot import TeleBot, types
 from collections import defaultdict
 from haversine import haversine, Unit
-import pymongo
+import os
 
 START, DESC, PHOTO, ADDLOC, CONFIRM = range(5)
 
 LOCATIONS = defaultdict(lambda: {})
-GOOGLE_API = "AIzaSyALtT3KbITF21-_amA_5midSpR0wcB96I8"
 
 token = "1196220206:AAGvBHTUREy5Qpt_W9hwhO95uaSnN_oGZbA"
 
 bot = TeleBot(token)
-client = MongoClient('localhost', 27017)
+client = MongoClient(os.getenv("MONGO_URI"), "mongodb+srv://127.0.0.1:27001")
 db = client['Telegram']
 loc_collection = db['locations']
 state_collection = db['state']
