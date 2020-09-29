@@ -65,7 +65,6 @@ def set_state(message, state):
         insert_record(state_collection, {"id": message.chat.id, "state": state})
 
 
-
 def get_state(message):
     try:
         state = get_record(state_collection, {"id": message.chat.id}, multiple=False)
@@ -111,17 +110,14 @@ def add_photo_handlers(message):
 @bot.message_handler(func=lambda message: get_state(message) == PHOTO)
 def add_no_photo_handlers(message):
     update_location(message.chat.id, "photo", "")
-    bot.send_message(message.chat.id, "Отправьте локацию или любое сообщение для добавления без локации")
+    bot.send_message(message.chat.id, "Отправьте локацию, эти данные являются обязательными")
     set_state(message, ADDLOC)
 
 
-@bot.message_handler(func=lambda message: get_state(message) == ADDLOC, content_types=["text", "location"])
+@bot.message_handler(func=lambda message: get_state(message) == ADDLOC, content_types=["location"])
 def add_loc_handlers(message):
-    if message.location:
-        update_location(message.chat.id, "loc", {"lat": message.location.latitude,
-                                                 "lon": message.location.longitude})
-    else:
-        update_location(message.chat.id, "loc", "")
+    update_location(message.chat.id, "loc", {"lat": message.location.latitude,
+                                             "lon": message.location.longitude})
 
     record = LOCATIONS[message.chat.id]
     bot.send_message(message.chat.id, record["desc"])
@@ -132,6 +128,11 @@ def add_loc_handlers(message):
 
     bot.send_message(message.chat.id, "Добавляем запись?", reply_markup=yes_no_keyboard)
     set_state(message, CONFIRM)
+
+
+@bot.message_handler(func=lambda message: get_state(message) == ADDLOC)
+def add_empty_loc_handlers(message):
+    bot.send_message(message.chat.id, "Укажите геопозицию, эти данные являются обязательными")
 
 
 @bot.callback_query_handler(func=lambda message: get_state(message.message) == CONFIRM)
