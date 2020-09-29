@@ -93,8 +93,21 @@ def add_handlers(message):
 @bot.message_handler(func=lambda message: get_state(message) == DESC)
 def add_desc_handlers(message):
     update_location(message.chat.id, "desc", message.text)
-    bot.send_message(message.chat.id, "Отправьте фотографию или любое сообщение для добавления без фото")
+    bot.send_message(message.chat.id, "Добавить фотографию?", reply_markup=yes_no_keyboard)
     set_state(message, PHOTO)
+
+
+@bot.callback_query_handler(func=lambda message: get_state(message.message) == PHOTO)
+def choise_photo_handler(callback_query):
+    message = callback_query.message
+    text = callback_query.data
+    if text == "Yes":
+        bot.send_message(message.chat.id, "Отправьте фотографию")
+        set_state(message, PHOTO)
+    elif text == "No":
+        bot.send_message(message.chat.id, "Отправьте локацию, эти данные являются обязательными")
+        update_location(message.chat.id, "photo", "")
+        set_state(message, ADDLOC)
 
 
 @bot.message_handler(func=lambda message: get_state(message) == PHOTO, content_types=['photo'])
@@ -102,15 +115,14 @@ def add_photo_handlers(message):
     file_info = bot.get_file(message.photo[len(message.photo) - 1].file_id)
     downloaded_file = bot.download_file(file_info.file_path)
     update_location(message.chat.id, "photo", downloaded_file)
-
-    bot.send_message(message.chat.id, "Отправьте локацию или любое сообщение для добавления без локации")
+    bot.send_message(message.chat.id, "Отправьте локацию, эти данные являются обязательными")
     set_state(message, ADDLOC)
 
 
 @bot.message_handler(func=lambda message: get_state(message) == PHOTO)
 def add_no_photo_handlers(message):
     update_location(message.chat.id, "photo", "")
-    bot.send_message(message.chat.id, "Отправьте локацию, эти данные являются обязательными")
+    bot.send_message(message.chat.id, "Вы не отправили фотографию, локация будет добавлена без фото")
     set_state(message, ADDLOC)
 
 
