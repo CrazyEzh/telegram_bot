@@ -11,7 +11,7 @@ LOCATIONS = defaultdict(lambda: {})
 token = "1196220206:AAGvBHTUREy5Qpt_W9hwhO95uaSnN_oGZbA"
 
 bot = TeleBot(token)
-client = MongoClient(os.getenv("MONGO_URI"), "mongodb+srv://127.0.0.1:27001")
+client = MongoClient(os.getenv("MONGO_URI"))
 db = client['Telegram']
 loc_collection = db['locations']
 state_collection = db['state']
