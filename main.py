@@ -8,7 +8,7 @@ START, DESC, PHOTO, ADDLOC, CONFIRM = range(5)
 
 LOCATIONS = defaultdict(lambda: {})
 
-token = "1196220206:AAGvBHTUREy5Qpt_W9hwhO95uaSnN_oGZbA"
+token = ""
 
 bot = TeleBot(token)
 client = MongoClient(os.getenv("MONGO_URI"))
